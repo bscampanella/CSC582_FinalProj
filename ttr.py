@@ -9,6 +9,7 @@ from collections import Counter, defaultdict
 import spacy
 import time
 import synonyms
+import lemminflect
 
 nlp = spacy.load('en_core_web_sm')
 
@@ -51,6 +52,8 @@ def reduce_syllables(text, score_data=None, target=None):
         text (string): The text of a document
         score_data (dict, optional): A dictionary containing score data. See above method. Defaults to None.
         target (float, optional): A target flesch reading score to hit. Defaults to None.
+    returns:
+        text (string): Modified text with obfuscation
     """
     flesch_score = None
     doc = nlp(text)
@@ -58,23 +61,23 @@ def reduce_syllables(text, score_data=None, target=None):
     for token in doc:
         if token.text not in stopwords.words():
             # Special case for verbs, get the tense
-            #if token.tag_[0] == 'V':
-                #no_stopwords.append((token.text, token.pos_, token.tag_))
-            no_stopwords.append((token.text, token.pos_))
+            no_stopwords.append((token.text, token.pos_, token.tag_))
     big_words = []
-    for word, pos in no_stopwords:
+    for word, pos, tok_tag in no_stopwords:
         if re.search(r'([\w\-\s]+)\w+', word):
-            big_words.append((word, pos, get_syllables(word)))
+            big_words.append((word, pos, get_syllables(word), tok_tag))
     big_words = sorted(big_words, key=lambda x: x[2], reverse=True)
-    for word, pos, syl_count in big_words:
+    for word, pos, syl_count, tok_tag in big_words:
         if pos not in SPACY_TAGS:
             continue
         syns = get_synonyms(word, pos)
-        print(syns)
-        # print(names)
-        transforms = [(n.split('.')[0], get_syllables(n.split('.')[0])) for n in names]
+        transforms = [(w, get_syllables(w)) for w in syns]
+        print(transforms)
         for word_sub, syl_num in transforms:
             word_sub = word_sub.replace('_', ' ')
+            if pos[0] == 'V':
+                doc = nlp(word_sub)
+                word_sub = doc[0]._.inflect(tok_tag)
             if syl_num < syl_count:
                 print('Replacement: {} ({}) -> {}'.format(word, pos[0], word_sub))
                 text = text.replace(word, word_sub, 1)
@@ -86,8 +89,9 @@ def reduce_syllables(text, score_data=None, target=None):
         if target and flesch_score:
             if flesch_score > target:
                 # print(text)
-                return
+                return text
     print(text)
+    return text
 
 def reduce_sentences(text, score_data=None, target=None):
     doc = nlp(text)
