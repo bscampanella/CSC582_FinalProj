@@ -8,8 +8,9 @@ import re
 from collections import Counter, defaultdict
 import spacy
 import time
+import synonyms
 
-nlp = spacy.load('en_core_web_lg')
+nlp = spacy.load('en_core_web_sm')
 
 reg_string = '([\w\-\s]+)\w+'
 
@@ -20,6 +21,10 @@ reg_string = '([\w\-\s]+)\w+'
 # PROPN - Proper noun
 # SYM - Symbol
 # VERB - Verb
+
+SPACY_TAGS = ['ADJ', 'ADV', 'NOUN', 'VERB']
+
+FANBOYS = ['for', 'and', 'nor', 'but', 'or', 'yet', 'so']
 
 SCORE_CONSTANT = 206.835
 
@@ -52,6 +57,9 @@ def reduce_syllables(text, score_data=None, target=None):
     no_stopwords = []
     for token in doc:
         if token.text not in stopwords.words():
+            # Special case for verbs, get the tense
+            #if token.tag_[0] == 'V':
+                #no_stopwords.append((token.text, token.pos_, token.tag_))
             no_stopwords.append((token.text, token.pos_))
     big_words = []
     for word, pos in no_stopwords:
@@ -59,25 +67,35 @@ def reduce_syllables(text, score_data=None, target=None):
             big_words.append((word, pos, get_syllables(word)))
     big_words = sorted(big_words, key=lambda x: x[2], reverse=True)
     for word, pos, syl_count in big_words:
-        print('WORD: ', word, 'POS: ', pos)
+        if pos not in SPACY_TAGS:
+            continue
         syns = get_synonyms(word, pos)
-        for s in syns:
-            transforms = [(lemma.name(), get_syllables(lemma.name())) for lemma in s.lemmas()]
-            transforms = sorted(transforms, key=lambda x: x[1])
-            for word_sub, syl_num in transforms:
-                if syl_num < syl_count:
-                    print('candidate found: {} syls: {}'.format(word_sub, syl_num))
-                    text = text.replace(word, word_sub, 1)
-                    if score_data:
-                        score_data['num_syllables'] -= (syl_count - syl_num)
-                        flesch_score = calculate_score(score_data)
-                        print('NEW SCORE:', flesch_score)
-                    break
-            if target:
-                if flesch_score > target:
-                    print(text)
-                    return
+        print(syns)
+        # print(names)
+        transforms = [(n.split('.')[0], get_syllables(n.split('.')[0])) for n in names]
+        for word_sub, syl_num in transforms:
+            word_sub = word_sub.replace('_', ' ')
+            if syl_num < syl_count:
+                print('Replacement: {} ({}) -> {}'.format(word, pos[0], word_sub))
+                text = text.replace(word, word_sub, 1)
+                if score_data:
+                    score_data['num_syllables'] -= (syl_count - syl_num)
+                    flesch_score = calculate_score(score_data)
+                    print('NEW SCORE:', flesch_score)
+                break
+        if target and flesch_score:
+            if flesch_score > target:
+                # print(text)
+                return
     print(text)
+
+def reduce_sentences(text, score_data=None, target=None):
+    doc = nlp(text)
+    for sent in doc.sents:
+        if not sent:
+            continue
+        
+        time.sleep(1)
 
 def get_synonyms(word, pos):
     """Gets the synonym for a word.
@@ -89,7 +107,8 @@ def get_synonyms(word, pos):
     Returns:
         list[synset]: Returns a list of wordnet synsets for a given word.
     """
-    return wn.synsets(word, pos=pos_to_wordnet_pos(pos))
+    return synonyms.get_synonyms(word, pos) 
+    #return wn.synsets(word, pos=pos_to_wordnet_pos(pos))
 
 def pos_to_wordnet_pos(spacy_tag, returnNone=False):
     """Converts a spacy POS tag to a wordnet POS tag.
@@ -106,14 +125,11 @@ def pos_to_wordnet_pos(spacy_tag, returnNone=False):
         'VERB': 'v',
         'NOUN': 'n',
         'ADV': 'r',
-        'PROPN': 'n'
     }
 
     if spacy_tag in spacy_to_wn:
         return spacy_to_wn[spacy_tag]
     else:
-        print('Error!! Tag not in wn')
-        print(spacy_tag)
         return 'n'
 
 def get_syllables(word):
@@ -126,6 +142,8 @@ def get_syllables(word):
     Returns:
         int: The number of syllables in that word.
     """
+    if not word:
+        return -1
     count = 0
     vowels = 'aeiouy'
     word = word.lower()
@@ -206,5 +224,7 @@ if __name__ == '__main__':
     text = read_file(filename)
     # calculate_ttr(text)
     # flesch_score(text)
-    reduce_syllables(text, sample_score_data)
+    reduce_syllables(text, sample_score_data, 70)
+    # reduce_sentences(text)
+
 
