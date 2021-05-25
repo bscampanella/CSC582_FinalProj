@@ -1,6 +1,7 @@
-#import requests
-#from bs4 import BeautifulSoup as bs
-
+"""
+THIS MAY NOT WORK PROPERLY IF YOU DON'T HAVE THE RIGHT CHROMEDRIVER FOR YOUR COMPUTER.
+https://chromedriver.chromium.org/downloads
+"""
 url = 'https://www.thesaurus.com/browse/'
 
 from selenium import webdriver
@@ -10,6 +11,14 @@ import time
 PATH = './chromedriver'
 
 def get_meanings(driver):
+    """Gets the synonyms from thesaurus.com
+
+    Args:
+        driver ([type]): Selenium driver
+
+    Returns:
+        [list[str]]: Returns a list of synonyms
+    """
     syns = []
     meanings = driver.find_element_by_id('meanings')
     synonym_list = meanings.find_element_by_tag_name('ul')
@@ -20,6 +29,15 @@ def get_meanings(driver):
     return syns
 
 def get_synonyms(word, pos):
+    """Gets the synonyms from thesaurus.com
+
+    Args:
+        word (str): The word to replace
+        pos (str): The part of speech of the word
+
+    Returns:
+        (list[str]): A list of synonyms
+    """
     options = webdriver.ChromeOptions()
     options.add_argument('--ignore-certificate-errors')
     options.add_argument('--ignore-ssl-errors')
