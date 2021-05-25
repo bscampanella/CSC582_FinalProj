@@ -45,17 +45,17 @@ def calculate_score(score_data):
     asw = score_data['num_syllables'] / score_data['num_words']
     return SCORE_CONSTANT - (1.015 * asl) - (84.6 * asw)
 
-def reduce_syllables(text, score_data=None, target=None):
-    """
-    Reduces the syllables from a text, starts by reducing the biggest words (most syllables).
+def sort_words(text, reverse_order=True):
+    """Parses and sorts words in a document
+
     Args:
-        text (string): The text of a document
-        score_data (dict, optional): A dictionary containing score data. See above method. Defaults to None.
-        target (float, optional): A target flesch reading score to hit. Defaults to None.
-    returns:
-        text (string): Modified text with obfuscation
+        text (str): A document
+        reverse_order (bool, optional): This will order the words from the most syllables to the least. Defaults to True.
+
+    Returns:
+
+        (word, Part of Speech, # Syllables, spacy tag): A tuple containing a bunch of information about a word
     """
-    flesch_score = None
     doc = nlp(text)
     no_stopwords = []
     for token in doc:
@@ -66,40 +66,70 @@ def reduce_syllables(text, score_data=None, target=None):
     for word, pos, tok_tag in no_stopwords:
         if re.search(r'([\w\-\s]+)\w+', word):
             big_words.append((word, pos, get_syllables(word), tok_tag))
-    big_words = sorted(big_words, key=lambda x: x[2], reverse=True)
-    for word, pos, syl_count, tok_tag in big_words:
+    big_words = sorted(big_words, key=lambda x: x[2], reverse=reverse_order)
+    return big_words
+
+
+#TODO: Nouns might also need to be inflected. I'll look into it.
+def modify_words(text, decreasing=True, score_data=None, target=None):
+    """
+    Chagnes the number of syllables in a text.
+    Args:
+        text (string): The text of a document
+        decreasing (bool, optional): Decreasing order reduces syllables, increasing order increases syllables. Defaults to True
+        score_data (dict, optional): A dictionary containing score data. See above method. Defaults to None.
+        target (float, optional): A target flesch reading score to hit. Defaults to None.
+    returns:
+        text (string): Modified text with obfuscation
+    """
+    flesch_score = None
+    s_words = sort_words(text, decreasing)
+    for word, pos, syl_count, tok_tag in s_words:
         if pos not in SPACY_TAGS:
             continue
         syns = get_synonyms(word, pos)
         transforms = [(w, get_syllables(w)) for w in syns]
-        print(transforms)
         for word_sub, syl_num in transforms:
             word_sub = word_sub.replace('_', ' ')
+            # this section changes the tense of a verb i.e. exagerate -> exagerated
             if pos[0] == 'V':
                 doc = nlp(word_sub)
                 word_sub = doc[0]._.inflect(tok_tag)
-            if syl_num < syl_count:
-                print('Replacement: {} ({}) -> {}'.format(word, pos[0], word_sub))
-                text = text.replace(word, word_sub, 1)
-                if score_data:
-                    score_data['num_syllables'] -= (syl_count - syl_num)
-                    flesch_score = calculate_score(score_data)
-                    print('NEW SCORE:', flesch_score)
-                break
+            if decreasing:
+                if syl_num < syl_count:
+                    print('Replacement: {} ({}) -> {}'.format(word, pos[0], word_sub))
+                    text = text.replace(word, word_sub, 1)
+                    if score_data:
+                        score_data['num_syllables'] -= (syl_count - syl_num)
+                        flesch_score = calculate_score(score_data)
+                        print('NEW SCORE:', flesch_score)
+                    break
+            else:
+                 if syl_num > syl_count:
+                    print('Replacement: {} ({}) -> {}'.format(word, pos[0], word_sub))
+                    text = text.replace(word, word_sub, 1)
+                    if score_data:
+                        score_data['num_syllables'] += (syl_num - syl_count)
+                        flesch_score = calculate_score(score_data)
+                        print('NEW SCORE:', flesch_score)
+                    break               
+
         if target and flesch_score:
-            if flesch_score > target:
-                # print(text)
+            if decreasing and flesch_score > target:
+                return text
+            elif not decreasing and flesch_score < target:
                 return text
     print(text)
     return text
 
-def reduce_sentences(text, score_data=None, target=None):
-    doc = nlp(text)
-    for sent in doc.sents:
-        if not sent:
-            continue
+# this method was supposed to reduce sentence length, but it's not really needed.
+# def reduce_sentences(text, score_data=None, target=None):
+    # doc = nlp(text)
+    # for sent in doc.sents:
+    #     if not sent:
+    #         continue
         
-        time.sleep(1)
+    #     time.sleep(1)
 
 def get_synonyms(word, pos):
     """Gets the synonym for a word.
@@ -112,7 +142,6 @@ def get_synonyms(word, pos):
         list[synset]: Returns a list of wordnet synsets for a given word.
     """
     return synonyms.get_synonyms(word, pos) 
-    #return wn.synsets(word, pos=pos_to_wordnet_pos(pos))
 
 def pos_to_wordnet_pos(spacy_tag, returnNone=False):
     """Converts a spacy POS tag to a wordnet POS tag.
@@ -165,12 +194,14 @@ def get_syllables(word):
     return count
 
 
-def flesch_score(text):
-    """Calculates the flesch reading score of a given document
-    https://readabilityformulas.com/flesch-reading-ease-readability-formula.php
+def get_score_data(text):
+    """Gets the score data in order to calculate the flesch reading score
 
     Args:
-        text (string): A document
+        text (str): A document
+
+    Returns:
+        dict: A dictionary containing score information
     """
     SCORE_CONSTANT = 206.835
     num_syllables = 0
@@ -187,14 +218,12 @@ def flesch_score(text):
             if re.search(r'([\w\-\s]+)\w+', word):
                 num_words += 1
                 num_syllables += get_syllables(word)
-    asl = num_words / num_sentences
-    asw = num_syllables / num_words
-    ease_score = SCORE_CONSTANT - (1.015 * asl) - (84.6 * asw)
-    print(num_words)
-    print(num_sentences)
-    print(num_syllables)
-    print('Flesch reading score:', ease_score)
-    return ease_score
+    score_data = {
+        'num_words': num_words,
+        'num_syllables': num_syllables,
+        'num_sentences': num_sentences
+    }
+    return score_data 
 
 def read_file(filepath):
     f = open(filepath, 'r')
@@ -211,14 +240,7 @@ def calculate_ttr(text):
             num_words += 1
             words[word] += 1
     TTR = len(words.keys()) / num_words
-    print(TTR)
-    # common = sorted(words.items(), key=lambda x: x[1], reverse=True)
-
-sample_score_data = {
-    'num_words': 614,
-    'num_sentences': 38,
-    'num_syllables': 920
-}
+    return TTR
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
@@ -226,9 +248,10 @@ if __name__ == '__main__':
         sys.exit()
     filename = sys.argv[1]
     text = read_file(filename)
-    # calculate_ttr(text)
-    # flesch_score(text)
-    reduce_syllables(text, sample_score_data, 70)
-    # reduce_sentences(text)
+    score_data = get_score_data(text)
+    if score_data < 70:
+        modify_words(text, True, score_data, 70)
+    else:
+        modify_words(text, False, score_data, 70)
 
 

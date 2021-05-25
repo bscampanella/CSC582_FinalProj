@@ -23,6 +23,7 @@ def get_synonyms(word, pos):
     options = webdriver.ChromeOptions()
     options.add_argument('--ignore-certificate-errors')
     options.add_argument('--ignore-ssl-errors')
+    options.add_argument('--headless')
     driver = webdriver.Chrome(executable_path=PATH, options=options)
     driver.get(url + word)
     header = driver.find_element_by_id('headword')
