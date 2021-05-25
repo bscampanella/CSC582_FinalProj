@@ -50,10 +50,8 @@ def get_synonyms(word, pos):
         for i, tab in enumerate(tabsList):
             part_of_speech = tab.find_element_by_tag_name('em')
             pos_text = part_of_speech.get_attribute('innerHTML')
-            print(pos_text)
             if pos_text == pos:
                 link = tab.find_element_by_tag_name('a')
-                print(link.get_attribute('innerHTML'))
                 link.click()
                 meanings = get_meanings(driver)
                 driver.quit()
