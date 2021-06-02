@@ -8,6 +8,7 @@ selenium = "*"
 nltk = "*"
 spacy = "*"
 lemminflect = "*"
+matplotlib = "*"
 
 [dev-packages]
 
