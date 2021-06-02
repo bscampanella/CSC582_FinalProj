@@ -47,15 +47,18 @@ class Word:
     def __str__(self):
         out = 'Word: {}, tf: {}, idf: {}, tfidf: {}'.format(self.word, self.tf, self.idf, self.tfidf)
         return out
+    
 
 class TFIDF:
 
     def __init__(self, text):
         self.text = text
         self.num_words = None
-        self.words = {} 
+        self.words = {}
+        self.freq_dist = None
+        self.generate()
 
-    def most_common_words(self):
+    def generate(self):
         num_words = 0
         ent_list = []
         doc = nlp(text)
@@ -80,16 +83,23 @@ class TFIDF:
             tf = val / num_words
             if word not in word_freq:
                 continue
-            print(word)
-            print(word_freq[word])
-            idf = math.log(word_freq[word]) + 10
+            idf = (1+word_freq[word])**3
             wd = Word(word, tf=tf, idf=idf)
             self.words[word] = wd
         self.freq_dist = fqdst
-        for key, val in self.words.items():
-            print(val)
+        # for key, val in self.words.items():
+            # print(val)
         return fqdst
 
+    def sort(self):
+        if not self.words:
+            return []
+        words = sorted(self.words.values(), key=lambda x: x.tfidf, reverse=True)
+        return words
+    
+    def most_common(self):
+        return self.freq_dist.most_common()
+        
 def entity_tag(freq_dist):
     for word, count in freq_dist:
         doc = nlp(word)
@@ -104,4 +114,8 @@ if __name__ == '__main__':
     filename = sys.argv[1]
     text = read_file(filename)
     tfidf = TFIDF(text)
-    tfidf.most_common_words()
+    order_1 = tfidf.sort()
+    order_2 = tfidf.most_common() 
+
+    for v1, v2 in zip(order_1, order_2):
+        print(v1.word, v2[0])
