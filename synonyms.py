@@ -24,7 +24,6 @@ def get_meanings(driver):
     synonym_list = meanings.find_element_by_tag_name('ul')
     synonyms = synonym_list.find_elements_by_tag_name('a')
     for synonym in synonyms:
-        print(synonym.text)
         syns.append(synonym.text)
     return syns
 
