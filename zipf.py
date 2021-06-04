@@ -52,7 +52,7 @@ class Word:
         return out
     
 
-class TFIDF:
+class Zipf:
 
     def __init__(self, text):
         self.text = text
@@ -160,7 +160,7 @@ if __name__ == '__main__':
         sys.exit()
     filename = sys.argv[1]
     text = read_file(filename)
-    tfidf = TFIDF(text)
+    tfidf = Zipf(text)
     order_1 = tfidf.sort()
     out = tfidf.transform()
     print(out)
