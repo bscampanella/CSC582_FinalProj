@@ -164,7 +164,3 @@ if __name__ == '__main__':
     order_1 = tfidf.sort()
     out = tfidf.transform()
     print(out)
-    # order_2 = tfidf.most_common() 
-
-    # for v1, v2 in zip(order_1, order_2):
-    #     print(v1.word, v2[0])

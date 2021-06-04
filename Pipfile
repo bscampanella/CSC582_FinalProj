@@ -9,6 +9,7 @@ nltk = "*"
 spacy = "*"
 lemminflect = "*"
 matplotlib = "*"
+sklearn = "*"
 
 [dev-packages]
 
