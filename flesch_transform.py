@@ -23,11 +23,9 @@ reg_string = '([\w\-\s]+)\w+'
 # SYM - Symbol
 # VERB - Verb
 
-SPACY_TAGS = ['ADJ', 'ADV', 'NOUN', 'VERB']
 
 FANBOYS = ['for', 'and', 'nor', 'but', 'or', 'yet', 'so']
 
-SCORE_CONSTANT = 206.835
 
 class Flesch:
 
@@ -35,6 +33,8 @@ class Flesch:
         self.text = text
         self.ideal = ideal
         self.score_data = score_data if score_data else self.get_score(text)
+        self.SPACY_TAGS = ['ADJ', 'ADV', 'NOUN', 'VERB']
+        self.SCORE_CONSTANT = 206.835
 
     def calculate_score(self, score_data):
         """
@@ -50,7 +50,7 @@ class Flesch:
         """
         asl = score_data['num_words'] / score_data['num_sentences']
         asw = score_data['num_syllables'] / score_data['num_words']
-        return SCORE_CONSTANT - (1.015 * asl) - (84.6 * asw)
+        return self.SCORE_CONSTANT - (1.015 * asl) - (84.6 * asw)
 
     def sort_words(self, reverse_order=True):
         """Parses and sorts words in a document
@@ -85,7 +85,7 @@ class Flesch:
         Returns:
             dict: A dictionary containing score information
         """
-        SCORE_CONSTANT = 206.835
+        self.SCORE_CONSTANT = 206.835
         num_syllables = 0
         num_words = 0
         # smoothing, may be needed it's hard to count number of sentences, and in testing sent_tokenize has
@@ -186,7 +186,7 @@ class Flesch:
             transform_count += 1
             if max_transforms and transform_count > max_transforms:
                 break 
-            if pos not in SPACY_TAGS:
+            if pos not in self.SPACY_TAGS:
                 continue
             syns = self.get_synonyms(word, pos)
             transforms = [(w, self.get_syllables(w)) for w in syns]
@@ -198,21 +198,17 @@ class Flesch:
                     word_sub = doc[0]._.inflect(tok_tag)
                 if decreasing:
                     if syl_num < syl_count:
-                        print('Replacement: {} ({}) -> {}'.format(word, pos[0], word_sub))
                         text = text.replace(word, word_sub, 1)
                         if score_data:
                             score_data['num_syllables'] -= (syl_count - syl_num)
                             flesch_score = self.calculate_score(score_data)
-                            print('NEW SCORE:', flesch_score)
                         break
                 else:
                     if syl_num > syl_count:
-                        print('Replacement: {} ({}) -> {}'.format(word, pos[0], word_sub))
                         text = text.replace(word, word_sub, 1)
                         if score_data:
                             score_data['num_syllables'] += (syl_num - syl_count)
                             flesch_score = self.calculate_score(score_data)
-                            print('NEW SCORE:', flesch_score)
                         break               
 
             if target and flesch_score:
@@ -235,28 +231,6 @@ def get_synonyms(word, pos):
     """
     return synonyms.get_synonyms(word, pos) 
 
-def pos_to_wordnet_pos(spacy_tag, returnNone=False):
-    """Converts a spacy POS tag to a wordnet POS tag.
-
-    Args:
-        spacy_tag (string): A spacy tag
-        returnNone (bool, optional): [description]. Defaults to False.
-
-    Returns:
-        string: Returns a wordnet POS tag
-    """
-    spacy_to_wn = {
-        'ADJ': 'a',
-        'VERB': 'v',
-        'NOUN': 'n',
-        'ADV': 'r',
-    }
-
-    if spacy_tag in spacy_to_wn:
-        return spacy_to_wn[spacy_tag]
-    else:
-        return 'n'
-
 def get_score_data(text):
     """Gets the score data in order to calculate the flesch reading score
 
@@ -266,7 +240,7 @@ def get_score_data(text):
     Returns:
         dict: A dictionary containing score information
     """
-    SCORE_CONSTANT = 206.835
+    self.SCORE_CONSTANT = 206.835
     num_syllables = 0
     num_words = 0
     # smoothing, may be needed it's hard to count number of sentences, and in testing sent_tokenize has
