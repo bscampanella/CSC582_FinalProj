@@ -61,7 +61,6 @@ def get_synonyms_manual(word, pos):
        synset = synsets[0] 
     for lemma in synset.lemmas():
         syn.append(lemma.name())
-    print(syn)
     return syn
 
 def get_synonyms(word, pos, nltk=True):

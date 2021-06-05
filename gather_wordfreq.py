@@ -17,11 +17,8 @@ def calculate_freq(filename):
     frequency = []
     for key, val in freqs.items():
         if key == None or val == None:
-            print('NONE ENCOUNTERED')
-            print(key)
-            print(val)
-        word.append(key)
-        frequency.append(val)
+            word.append(key)
+            frequency.append(val)
 
     write_word_freq(freqs)
 

@@ -189,6 +189,8 @@ class Flesch:
             if pos not in self.SPACY_TAGS:
                 continue
             syns = self.get_synonyms(word, pos)
+            if not syns:
+                continue
             transforms = [(w, self.get_syllables(w)) for w in syns]
             for word_sub, syl_num in transforms:
                 word_sub = word_sub.replace('_', ' ')
@@ -202,21 +204,17 @@ class Flesch:
                         if score_data:
                             score_data['num_syllables'] -= (syl_count - syl_num)
                             flesch_score = self.calculate_score(score_data)
-                        break
                 else:
                     if syl_num > syl_count:
                         text = text.replace(word, word_sub, 1)
                         if score_data:
                             score_data['num_syllables'] += (syl_num - syl_count)
                             flesch_score = self.calculate_score(score_data)
-                        break               
-
-            if target and flesch_score:
-                if decreasing and flesch_score > target:
-                    return text
-                elif not decreasing and flesch_score < target:
-                    return text
-        print(text)
+                if target and flesch_score:
+                    if decreasing and flesch_score > target:
+                        return text
+                    elif not decreasing and flesch_score < target:
+                        return text
         return text
 
 def get_synonyms(word, pos):
@@ -286,8 +284,7 @@ if __name__ == '__main__':
     filename = sys.argv[1]
     text = read_file(filename)
     flesch = Flesch(text)
-    out = flesch.transform(target=50)
-    print(out)
+    out = flesch.transform(target=70)
     # score_data = get_score_data(text)
     # if score_data < 70:
     #     modify_words(text, True, score_data, 70)

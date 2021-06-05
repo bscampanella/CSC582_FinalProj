@@ -9,8 +9,10 @@ from nltk import word_tokenize, sent_tokenize
 from nltk import FreqDist
 from nltk.corpus import stopwords
 from nltk.tokenize import MWETokenizer
+import time
+import random
 stop_words = set(stopwords.words('english'))
-
+import lemminflect
 KEEP_ENTS = ['DATE', 'PERSON', 'GPE', 'ORG', 'NORP', 'WORK_OF_ART', 'PRODUCT']
 
 
@@ -73,7 +75,7 @@ class Zipf:
     def generate(self):
         num_words = 0
         ent_list = []
-        doc = nlp(text)
+        doc = nlp(self.text)
 
         with doc.retokenize() as retokenizer:
             for ent in doc.ents:
@@ -124,41 +126,46 @@ class Zipf:
     def generate_random(self):
         return int.from_bytes(os.urandom(8), byteorder="big") / ((1 << 64) - 1)
 
+    def inflect(self, word, tag):
+        doc = nlp(word)
+        word_sub = doc[0]._.inflect(tag)
+        return word_sub
+    
     def transform(self, rate=0.5, word_pct=0.1):
         words = self.sort()
         counts = self.word_count
         doc = nlp(self.text)
         text = self.text
         new_text = ''
+        old_text = text
         max_words = int(word_pct * len(words))
         for i, wordObj in enumerate(words):
             if i > max_words:
                 break
             word = wordObj.word
             for tok in doc:
-                if tok.text == word and self.generate_random() <= rate:
-                    if word == 'said':
-                        synonyms=['uttered', 'declared', 'spoke', 'reported']
+                if tok.text == word:
+                    if self.generate_random() <= rate:
+                        if word == 'said':
+                            synonyms=['uttered', 'declared', 'spoke', 'reported']
+                            text = text.replace(word, random.choice(synonyms), 1)
+                        else:
+                            synonyms=get_synonyms(tok.text, tok.pos_)
+                        if not synonyms:
+                            continue
+                        else:
+                            synonym = random.choice(synonyms)
+                            synonym = synonym.replace('_', ' ')
+                            replacement = self.inflect(synonym, tok.tag_)
+                            text=text.replace(word, replacement, 1)
                     else:
-                        synonyms=get_synonyms(tok.text, tok.pos_)
-                    text=text.replace(word, synonyms[0], 1)
-                else:
-                    cut=text.split(word, 1)
-                    if len(cut) == 1:
-                        new_text += cut[0]
-                        text=cut[0]
-                    else:
-                        new_text += cut[0]
-                        text=cut[1]
-            text = new_text
+                        cut = text.split(word, 1)
+                        if len(cut) != 1:
+                            new_text += cut[0] + word
+                            text = cut[1]
+            text = new_text + text 
+            new_text = ''
         return text
-
-def entity_tag(freq_dist):
-    for word, count in freq_dist:
-        doc=nlp(word)
-        for token in doc.ents:
-            print(token.label_)
-            print(token.text)
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
@@ -168,5 +175,4 @@ if __name__ == '__main__':
     text=read_file(filename)
     tfidf=Zipf(text)
     order_1=tfidf.sort()
-    out=tfidf.transform()
-    print(out)
+    out=tfidf.transform(rate=0.7, word_pct=.4)
