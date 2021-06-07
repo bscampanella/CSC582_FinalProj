@@ -261,7 +261,7 @@ def get_score_data(text):
     return score_data 
 
 def read_file(filepath):
-    f = open(filepath, 'r')
+    f = open(filepath, 'r', encoding="utf-8")
     return f.read()
 
 def calculate_ttr(text):
