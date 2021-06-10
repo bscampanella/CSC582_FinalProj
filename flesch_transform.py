@@ -1,3 +1,4 @@
+from nltk.tag import pos_tag
 import sys
 import nltk
 from nltk.corpus import stopwords
@@ -10,7 +11,6 @@ import spacy
 import time
 import synonyms
 import lemminflect
-
 nlp = spacy.load('en_core_web_sm')
 
 reg_string = '([\w\-\s]+)\w+'
@@ -25,7 +25,11 @@ reg_string = '([\w\-\s]+)\w+'
 
 
 FANBOYS = ['for', 'and', 'nor', 'but', 'or', 'yet', 'so']
-
+grammar = r"""
+        NP:
+            {<.*>+}
+            }<IN|CC>+{
+    """
 
 class Flesch:
 
@@ -35,6 +39,16 @@ class Flesch:
         self.score_data = score_data if score_data else self.get_score(text)
         self.SPACY_TAGS = ['ADJ', 'ADV', 'NOUN', 'VERB']
         self.SCORE_CONSTANT = 206.835
+        
+
+    def getSentenceType(self, statement): 
+        sentenceParts = pos_tag(statement.split()) 
+        return sentenceParts
+
+    def sentSegs(self, taggedSent, grammar, loops):
+        cp = nltk.RegexpParser(grammar, loop=loops)
+        result = cp.parse(taggedSent)
+        return result
 
     def calculate_score(self, score_data):
         """
@@ -261,7 +275,7 @@ def get_score_data(text):
     return score_data 
 
 def read_file(filepath):
-    f = open(filepath, 'r')
+    f = open(filepath, 'r', encoding="utf-8")
     return f.read()
 
 def calculate_ttr(text):

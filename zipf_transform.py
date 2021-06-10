@@ -41,7 +41,7 @@ def read_file(filepath):
 
 
 word_freq = {}
-word_freq_file = 'word_freq.txt'
+word_freq_file = 'tfidf_freq.txt'
 with open(word_freq_file, encoding="utf-8") as f:
     for line in f:
         word, freq = line.strip().split()
@@ -100,7 +100,7 @@ class Zipf:
             tf = val / num_words
             if word not in word_freq:
                 continue
-            idf = (1+word_freq[word])**3
+            idf = word_freq[word]
             wd = Word(word, tf=tf, idf=idf)
             self.words[word] = wd
         self.freq_dist = fqdst
@@ -176,3 +176,4 @@ if __name__ == '__main__':
     tfidf=Zipf(text)
     order_1=tfidf.sort()
     out=tfidf.transform(rate=0.7, word_pct=.4)
+    print(out)
