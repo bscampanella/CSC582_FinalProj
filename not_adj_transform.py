@@ -91,14 +91,23 @@ if __name__ == "__main__":
     
     tokens = sent_tokenize(rawtxt)
 
+
+    tot_num_tok = len(tokens)
+    num_transformed = 0
+
     print(len(tokens))
+    
 
     for i, token in enumerate(tokens):
         
         sent_after_transform = change_sent_not(token)
         if sent_after_transform != token:
-            print(token)
-            print(sent_after_transform)
+            # print(token)
+            # print(sent_after_transform)
+            num_transformed += 1
 
         if i % 1000 == 0:
             print(i)
+
+
+    print("num_transformed / total_tokens = {} / {}".format( num_transformed, tot_num_tok))

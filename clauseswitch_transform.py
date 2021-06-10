@@ -101,22 +101,32 @@ def GetRawText(url):
 
 
 if __name__ == "__main__":
-    print(clauseswitch("He is happy about his car."))
+    print(clauseswitch("He was happy when it was saturday."))
 
     rawtxt = GetRawText("https://www.gutenberg.org/files/98/98-0.txt")
     
     tokens = sent_tokenize(rawtxt)
 
+
+    tot_num_tok = len(tokens)
+    num_transformed = 0
+
     print(len(tokens))
+    
+
 
     for i, token in enumerate(tokens):
         
         sent_after_transform = clauseswitch(token)
         if sent_after_transform != token:
 
-            print("\n\n-----------------------------------")
-            print(token)
-            print(sent_after_transform)
+            # print("\n\n-----------------------------------")
+            # print(token)
+            # print(sent_after_transform)
+
+            num_transformed += 1
 
         if i % 1000 == 0:
             print(i)
+
+    print("num_transformed / total_tokens = {} / {}".format( num_transformed, tot_num_tok))
